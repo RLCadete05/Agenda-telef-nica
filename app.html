@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <!--vuetify-->
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.x/css/font-awesome.min.css" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <div id="app">
+            <v-app id="inspire">
+                <div>
+                    <v-app-bar color="grey lighten-1" dense dark>
+                        <v-toolbar-title>Contatos</v-toolbar-title>
+
+                        <v-spacer></v-spacer>
+
+                        <v-row justify="center">
+                            <v-dialog v-model="dialog" fullscreen hide-overlay transition="dialog-bottom-transition">
+                                <template v-slot:activator="{ on, attrs }">
+
+                                    <v-btn icon color="primary" dark v-bind="attrs" v-on="on">
+                                        <v-icon>
+                                            <!-- mdi-checkbox-marked-circle -->
+                                            mdi mdi-plus
+                                        </v-icon>
+                                    </v-btn>
+                                </template>
+
+                                <v-card>
+                                    <v-toolbar dark color="primary">
+                                        <v-btn icon dark @click="dialog = false">
+                                            <v-icon>mdi-close</v-icon>
+                                        </v-btn>
+                                        <v-toolbar-title>Novo Contato</v-toolbar-title>
+                                        <v-spacer></v-spacer>
+                                        <v-toolbar-items>
+                                            <v-btn dark text @click="dialog = false">
+                                                Save
+                                            </v-btn>
+                                        </v-toolbar-items>
+                                    </v-toolbar>
+
+                                    <v-form ref="form" v-model="valid" lazy-validation
+                                        class="d-flex justify-center flex-column px-4" width="450">
+                                        <v-text-field v-model="contact.name" :counter="15" label="Nome"
+                                            required></v-text-field>
+
+                                        <v-text-field type="tel" v-model="contact.telephone" @input="phoneFormat"
+                                            maxlength="14" label="Telefone" required>
+                                        </v-text-field>
+
+                                        <v-btn :disabled="!valid" color="success" class="mr-4" @click="saveContact">
+                                            Salvar contato
+                                        </v-btn>
+                                    </v-form>
+                                </v-card>
+                            </v-dialog>
+                        </v-row>
+
+                    </v-app-bar>
+
+                    <v-simple-table fixed-header>
+                        <template v-slot:default>
+                            <thead>
+                                <tr>
+                                    <th class="text-left">#</th>
+                                    <th class="text-left">Nome</th>
+                                    <th class="text-left">Telefone</th>
+                                    <th class="text-left">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="item in list">
+                                    <th>{{ item.id }}</th>
+
+                                    <td>{{ item.name }}</td>
+                                    <td>{{ item.telephone }}</td>
+                                    <td>
+                                        <v-btn @click="edit(item)" text color="primary">Editar</v-btn>
+                                        <v-btn @click="remove(item)" text color="error">Excluir</v-btn>
+
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </template>
+                    </v-simple-table>
+
+
+                </div>
+            </v-app>
+        </div>
+    </header>
+
+</body>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+
+
+<script>
+    // Vue.component('my-phone-input', {
+    //     template: `
+    //             <div>
+    //                 <input type="tel" onkeypress='return filterKeys(event)' v-model="formattedPhoneValue" @keyup="focusOut" @blur="focusOut" placeholder="Telefone"/>
+    //             </div>`,
+    //     data: function () {
+    //         return {
+    //             phoneValue: 0,
+    //             formattedPhoneValue: "",
+    //             preventNextIteration: false
+    //         }
+    //     },
+    //     methods: {
+    //         focusOut: function (event) {
+    //             if (['Arrow', 'Backspace', 'Shift'].includes(event.key)) {
+    //                 this.preventNextIteration = true;
+    //                 return;
+    //             }
+    //             if (this.preventNextIteration) {
+    //                 this.preventNextIteration = false;
+    //                 return;
+    //             }
+    //             this.phoneValue = this.formattedPhoneValue.replace(/\D/g, '').match(/(\d{1,11})/g)[0];
+
+    //             // Format display value based on calculated currencyValue
+    //             this.formattedPhoneValue = this.phoneValue.replace(/(\d{1,2})(\d{1,4})(\d{1,4})/g, '($1) $2-$3');
+    //         }
+    //     }
+    // });
+
+    new Vue({
+        el: '#app',
+        vuetify: new Vuetify(),
+        data() {
+            return {
+                valid: true,
+
+                contact: {
+                    id: 0,
+                    name: null,
+                    telephone: null
+                },
+                index: null,
+                list: [],
+
+                dialog: false,
+                notifications: false,
+                sound: true,
+                widgets: false,
+
+            }
+
+        },
+        mounted() {
+            const contacts = JSON.parse(localStorage.getItem('contacts'))
+            this.list = contacts ? contacts : []
+        },
+        methods: {
+            validate() {
+                this.$refs.form.validate()
+            },
+            saveContact() {
+                if (this.contact.id === 0) {
+                    this.contact.id = this.list.length + 1
+                    this.list.push(this.contact)
+
+                } else {
+                    this.list[this.index] = this.contact
+                }
+                localStorage.setItem('contacts', JSON.stringify(this.list))
+                this.contact = { id: 0, name: null, telephone: null }
+            },
+
+            remove(item) {
+                const idx = this.list.indexOf(item)
+                this.list.splice(idx, 1)
+                localStorage.setItem('contacts', JSON.stringify(this.list))
+            },
+
+            edit(item) {
+                this.index = this.list.indexOf(item)
+                this.contact = Object.assign({}, item);
+                localStorage.setItem('contacts', JSON.stringify(this.list))
+            },
+
+            phoneFormat() {
+                var contactNumber = this.contact.telephone.replace(/\D/g, '').match(/(\d{0,2})(\d{0,4})(\d{0,4})/);
+                this.contact.telephone = !contactNumber[2] ? contactNumber[1] : '(' + contactNumber[1] + ') ' + contactNumber[2] + (contactNumber[3] ? '-' + contactNumber[3] : '');
+            },
+
+        },
+    })
+
+
+</script>
+
+
+
+</html>
